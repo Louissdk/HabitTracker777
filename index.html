@@ -298,12 +298,14 @@
     <script>
     // --- PASSO 2: CONFIGURAÇÃO DO SUPABASE ---
     // Substitua pelos seus valores reais do Supabase
-    const SUPABASE_URL = 'https://izwbgciihapiremljtlm.supabase.co'; // Sem o "/rest/v1/"
-const SUPABASE_KEY = 'eyJhbGci...'; // Sua chave anon
-// O comando correto é "supabaseClient.createClient" apenas se a variável não tiver o mesmo nome
-const supabaseClient = supabaseClient.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // --- CONFIGURAÇÃO DO SUPABASE ---
+const SUPABASE_URL = 'https://izwbgciihapiremljtlm.supabase.co'; 
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6d2JnY2lpaGFwaXJlbWxqdGxtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTMxMzAsImV4cCI6MjA5MjM4OTEzMH0.IKiK5Vh6uR0Usr7gjnwtHBLglKPzb7AMCMt20n6gyZg';
 
-    let currentUser = null;
+// Aqui está a correção: usamos o objeto global 'supabase' para criar o seu 'supabaseClient'
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = null;
 
     // --- ESTADO INICIAL (Será preenchido pelo Supabase) ---
     let state = {
