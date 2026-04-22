@@ -300,8 +300,8 @@
     // Substitua pelos seus valores reais do Supabase
     const SUPABASE_URL = 'https://izwbgciihapiremljtlm.supabase.co'; // Sem o "/rest/v1/"
 const SUPABASE_KEY = 'eyJhbGci...'; // Sua chave anon
-// O comando correto é "supabase.createClient" apenas se a variável não tiver o mesmo nome
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// O comando correto é "supabaseClient.createClient" apenas se a variável não tiver o mesmo nome
+const supabaseClient = supabaseClient.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let currentUser = null;
 
@@ -467,10 +467,10 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         if (habitId) {
             // Assumindo que 'completedHabits' é um objeto onde as chaves são habitIds
-            // e os valores são datas ou contagens. Precisamos ajustar isso para o Supabase.
+            // e os valores são datas ou contagens. Precisamos ajustar isso para o supabaseClient.
             // Por agora, vamos apenas registrar o ganho e deixar o CRON para validações complexas.
             // Se você quiser salvar histórico de hábitos no Supabase, crie a tabela `daily_habits`.
-            // Ex: await supabase.from('daily_habits').insert([{ user_id: currentUser.id, habit_id: habitId, xp_gain: xpAmount }]);
+            // Ex: await supabaseClient.from('daily_habits').insert([{ user_id: currentUser.id, habit_id: habitId, xp_gain: xpAmount }]);
         }
         
         updateStateAndSave(updatedState);
@@ -478,7 +478,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // --- LÓGICA DE AUTH ---
     async function checkAuthState() {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await supabaseClient.auth.getUser();
         if (user) {
             currentUser = user;
             document.getElementById('login-overlay').style.display = 'none';
@@ -697,7 +697,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         // Salva no Supabase
         if (currentUser) {
             try {
-                await supabase.from('codice_estudos').insert([{
+                await supabaseClient.from('codice_estudos').insert([{
                     user_id: currentUser.id,
                     tag: logEntry.tag,
                     content: logEntry.content,
@@ -731,7 +731,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         // Penalidades são aplicadas diretamente via RPC para garantir consistência
         if (!currentUser) return;
         try {
-            await supabase.rpc('apply_penalty', {
+            await supabaseClient.rpc('apply_penalty', {
                 _user_id: currentUser.id,
                 _xp_penalty: amt,
                 _points_penalty: Math.floor(amt / 2),
@@ -749,7 +749,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         if (confirm("Protocolo Zero (XXX): Isso zerará seus ganhos de hoje. Confirmar?")) {
             if (!currentUser) return;
             try {
-                await supabase.rpc('apply_penalty', {
+                await supabaseClient.rpc('apply_penalty', {
                     _user_id: currentUser.id,
                     _xp_penalty: state.xp, // Zera XP atual
                     _points_penalty: state.points, // Zera Pontos atuais
@@ -787,7 +787,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         if (!file) return;
 
         try {
-            const { data, error } = await supabase.storage
+            const { data, error } = await supabaseClient.storage
                 .from('avatars') // Nome do seu bucket de storage no Supabase
                 .upload(`public/${currentUser.id}/${file.name}`, file, {
                     cacheControl: '3600',
@@ -799,7 +799,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${data.fullPath}`;
             
             // Atualiza a URL do avatar no perfil do usuário
-            await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', currentUser.id);
+            await supabaseClient.from('profiles').update({ avatar_url: publicUrl }).eq('id', currentUser.id);
             state.avatar = publicUrl; // Atualiza o estado local
             document.getElementById('avatar-img').src = publicUrl; // Atualiza a imagem imediatamente
 
@@ -840,7 +840,7 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         }
         
         // Salva a conquista no Supabase
-        supabase.from('achievements').insert([{ user_id: currentUser.id, achievement_id: id }])
+        supabaseClient.from('achievements').insert([{ user_id: currentUser.id, achievement_id: id }])
             .then(({ error }) => {
                 if (error) console.error("Erro ao salvar conquista:", error.message);
             });
