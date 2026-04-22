@@ -487,6 +487,7 @@
         // --- ACHIEVEMENTS ---
         function renderAchievements() {
             const grid = document.getElementById('achievement-grid');
+            if (!grid) return;
             grid.innerHTML = '';
             for(let i=1; i<=60; i++) {
                 const unlocked = S.unlocked_achs.includes(i);
@@ -495,14 +496,18 @@
         }
 
         // --- SYSTEM ---
-        function addXP(xp, p) { S.xp += xp; S.points += p; sync(); }
-        function addWater(ml) { S.water += ml; if(S.water < 0) S.water = 0; sync(); }
+        function addXP(xp, p) { 
+            S.xp += xp; 
+            S.points += p; 
+            sync(); 
+        }
 
-        // --- SYSTEM ---
-        function addXP(xp, p) { S.xp += xp; S.points += p; sync(); }
-        function addWater(ml) { S.water += ml; if(S.water < 0) S.water = 0; sync(); }
+        function addWater(ml) { 
+            S.water += ml; 
+            if(S.water < 0) S.water = 0; 
+            sync(); 
+        }
 
-        // ADICIONE ESTA FUNÇÃO AQUI:
         async function registrarTreino() {
             const select = document.getElementById('train-select');
             const val = select.value;
@@ -517,7 +522,6 @@
             else if(val === 'omb') { xp = 40; p = 20; }
 
             try {
-                // Salva no Supabase na tabela training_log
                 await _supabase.from('training_log').insert([{ 
                     user_id: S.id, 
                     type: val, 
@@ -530,16 +534,14 @@
                 select.value = 'none';
             } catch (err) {
                 console.error(err);
-                alert("Erro ao salvar no banco. Verifique se a tabela 'training_log' existe.");
+                alert("Erro ao salvar no banco.");
             }
         }
 
         function renderChart() {
-            const ctx = document.getElementById('chart-focus').getContext('2d');
-            // ... resto do seu código de gráfico
-            
-        function renderChart() {
-            const ctx = document.getElementById('chart-focus').getContext('2d');
+            const canvas = document.getElementById('chart-focus');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
             const data = {
                 labels: ['JP', 'EN', 'PG', 'IA', 'VD'],
                 datasets: [{
@@ -559,7 +561,10 @@
 
         window.onload = () => {
             const date = new Date();
-            document.getElementById('dash-date').innerText = date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+            const dashDate = document.getElementById('dash-date');
+            if (dashDate) {
+                dashDate.innerText = date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+            }
         };
     </script>
 </body>
