@@ -298,9 +298,10 @@
     <script>
     // --- PASSO 2: CONFIGURAÇÃO DO SUPABASE ---
     // Substitua pelos seus valores reais do Supabase
-    const SUPABASE_URL = 'https://izwbgciihapiremljtlm.supabase.co'; 
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6d2JnY2lpaGFwaXJlbWxqdGxtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTMxMzAsImV4cCI6MjA5MjM4OTEzMH0.IKiK5Vh6uR0Usr7gjnwtHBLglKPzb7AMCMt20n6gyZg'; // Use a anon key para o frontend
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const SUPABASE_URL = 'https://izwbgciihapiremljtlm.supabase.co'; // Sem o "/rest/v1/"
+const SUPABASE_KEY = 'eyJhbGci...'; // Sua chave anon
+// O comando correto é "supabase.createClient" apenas se a variável não tiver o mesmo nome
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let currentUser = null;
 
@@ -357,7 +358,7 @@
         const password = document.getElementById('auth-password').value;
         
         try {
-            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
             
             if (error) throw error;
 
