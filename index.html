@@ -279,12 +279,13 @@
     </div>
 
     <script>
+        <script>
         // --- CONFIGURAÇÃO SUPABASE ---
         const SUPABASE_URL = 'https://izwbgciihapiremljtlm.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6d2JnY2lpaGFwaXJlbWxqdGxtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTMxMzAsImV4cCI6MjA5MjM4OTEzMH0.IKiK5Vh6uR0Usr7gjnwtHBLglKPzb7AMCMt20n6gyZg';
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // --- CONSTANTES DE PROGRESSÃO ---
+        // --- CONSTANTES ---
         const RANKS = [
             { n: "Errante", xp: 0, p: 0 },
             { n: "Desperto", xp: 400, p: 300 },
@@ -305,7 +306,7 @@
         let S = {
             id: null,
             xp: 0, points: 0, focus_hours: 0, water: 0,
-            logs: [], unlocked_achs: [], theme: 'dark'
+            logs: [], unlocked_achs: []
         };
 
         let timerObj = null;
@@ -317,7 +318,7 @@
             const email = document.getElementById('login-email').value;
             const pass = document.getElementById('login-pass').value;
             const { data, error } = await _supabase.auth.signInWithPassword({ email, password: pass });
-            if(error) alert(error.message);
+            if(error) alert("Erro: " + error.message);
             else {
                 S.id = data.user.id;
                 document.getElementById('login-overlay').style.display = 'none';
@@ -326,43 +327,40 @@
         }
 
         async function loadData() {
-    const { data: profile } = await _supabase.from('profiles').select('*').eq('id', S.id).single();
-    if(profile) {
-        S.xp = profile.xp || 0; 
-        S.points = profile.points || 0;
-        S.focus_hours = profile.focus_hours_total || 0;
-        S.water = profile.water_ml_today || 0;
-    }
-    
-    const { data: logs } = await _supabase.from('codice_estudos').select('*').eq('user_id', S.id).order('created_at', {ascending: false});
-    S.logs = logs || [];
-    
-    const { data: achs } = await _supabase.from('achievements').select('achievement_id').eq('user_id', S.id);
-    S.unlocked_achs = achs ? achs.map(a => a.achievement_id) : [];
+            // Perfil
+            const { data: profile } = await _supabase.from('profiles').select('*').eq('id', S.id).single();
+            if(profile) {
+                S.xp = profile.xp || 0; 
+                S.points = profile.points || 0;
+                S.focus_hours = profile.focus_hours_total || 0;
+                S.water = profile.water_ml_today || 0;
+            }
+            
+            // Logs
+            const { data: logs } = await _supabase.from('codice_estudos').select('*').eq('user_id', S.id).order('created_at', {ascending: false});
+            S.logs = logs || [];
+            
+            // Conquistas
+            const { data: achs } = await _supabase.from('achievements').select('achievement_id').eq('user_id', S.id);
+            S.unlocked_achs = achs ? achs.map(a => a.achievement_id) : [];
 
-    // Gatilhos de interface
-    updateUI();
-    renderRoutine();
-    renderChart();
-    renderLogs(); // Adicionado
-    updateBotany(); // Adicionado
-}
+            updateUI();
+            renderRoutine();
+            renderChart();
+            renderLogs();
+            updateBotany();
         }
 
         async function sync() {
-    if(!S.id) return;
-    try {
-        await _supabase.from('profiles').update({
-            xp: S.xp, 
-            points: S.points, 
-            focus_hours_total: S.focus_hours,
-            water_ml_today: S.water
-        }).eq('id', S.id);
-        updateUI();
-    } catch (e) {
-        console.error("Erro na sincronização:", e);
-    }
-}
+            if(!S.id) return;
+            await _supabase.from('profiles').update({
+                xp: S.xp, 
+                points: S.points, 
+                focus_hours_total: S.focus_hours,
+                water_ml_today: S.water
+            }).eq('id', S.id);
+            updateUI();
+        }
 
         // --- NAVIGATION ---
         function showPage(id) {
@@ -370,11 +368,12 @@
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             document.getElementById('page-'+id).classList.add('active');
             event.currentTarget.classList.add('active');
+            if(id === 'dash') renderChart();
         }
 
-        // --- UI UPDATES ---
+        // --- UI ---
         function updateUI() {
-            let current = [...RANKS].reverse().find(r => S.xp >= r.xp && S.points >= r.p) || RANKS[0];
+            let current = [...RANKS].reverse().find(r => S.xp >= r.xp) || RANKS[0];
             let next = RANKS[RANKS.indexOf(current) + 1] || current;
 
             document.getElementById('rank-label').innerText = current.n;
@@ -391,40 +390,31 @@
             renderAchievements();
         }
 
-        // --- ROUTINE ---
-        function renderRoutine() {
-            const days = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
-            const today = new Date().getDay();
-            const container = document.getElementById('routine-container');
-            container.innerHTML = '';
+        // --- SISTEMA ---
+        function addXP(xp, p) { S.xp += xp; S.points += p; sync(); }
+        function addWater(ml) { S.water += ml; if(S.water < 0) S.water = 0; sync(); }
 
-            days.forEach((day, idx) => {
-                const locked = idx < today;
-                const active = idx === today;
-                container.innerHTML += `
-                    <div class="day-box ${locked ? 'locked' : ''}">
-                        <div class="day-header" onclick="toggleAcc(this)">
-                            <span>${day} ${active ? '— (ATUAL)' : ''}</span>
-                            <span>${locked ? '🔒' : '▼'}</span>
-                        </div>
-                        <div class="day-content ${active ? 'active' : ''}">
-                            <div class="habit-item"><input type="checkbox" onchange="addXP(5,5)"> Café da Manhã</div>
-                            <div class="habit-item"><input type="checkbox" onchange="addXP(5,5)"> Café da Tarde</div>
-                            <div class="habit-item"><input type="checkbox" onchange="addXP(20,10)"> Estudo Diário</div>
-                        </div>
-                    </div>
-                `;
-            });
+        async function registrarTreino() {
+            const select = document.getElementById('train-select');
+            const val = select.value;
+            if(val === 'none') return alert("Selecione o treino.");
+            let xp = val === 'inf' ? 100 : (val === 'pc' ? 60 : 40);
+            let p = val === 'inf' ? 50 : (val === 'pc' ? 30 : 20);
+
+            try {
+                await _supabase.from('training_log').insert([{ user_id: S.id, type: val, xp_gained: xp, points_gained: p }]);
+                addXP(xp, p);
+                alert("Treino registrado!");
+                select.value = 'none';
+            } catch (err) { alert("Erro ao salvar treino."); }
         }
-
-        function toggleAcc(el) { el.nextElementSibling.classList.toggle('active'); }
 
         // --- POMODORO ---
         function togglePomo() {
             if(isRunning) { clearInterval(timerObj); isRunning = false; document.getElementById('pomo-btn').innerText = 'RECURAR'; }
             else {
                 isRunning = true;
-                if(timeLeft === 0) timeLeft = document.getElementById('pomo-custom-min').value * 60;
+                if(timeLeft <= 0) timeLeft = document.getElementById('pomo-custom-min').value * 60;
                 document.getElementById('pomo-btn').innerText = 'PAUSAR';
                 timerObj = setInterval(() => {
                     timeLeft--;
@@ -432,17 +422,15 @@
                     document.getElementById('pomo-display').innerText = `${m}:${s < 10 ? '0' : ''}${s}`;
                     if(timeLeft <= 0) {
                         clearInterval(timerObj); isRunning = false;
-                        S.focus_hours += (document.getElementById('pomo-custom-min').value / 60);
-                        addXP(30, 15); sync();
-                        new Audio('https://actions.google.com/sounds/v1/alarms/beep_short.ogg').play();
+                        let mins = document.getElementById('pomo-custom-min').value;
+                        S.focus_hours += (mins / 60);
+                        addXP(30, 15);
                         updateBotany();
                     }
                 }, 1000);
             }
         }
-
         function resetPomo() { clearInterval(timerObj); isRunning = false; timeLeft = 0; document.getElementById('pomo-display').innerText = "25:00"; }
-        
         function updateBotany() {
             let idx = Math.min(BOTANY.length - 1, Math.floor(S.focus_hours / 2));
             document.getElementById('pomo-emoji').innerText = BOTANY[idx];
@@ -456,12 +444,10 @@
             await _supabase.from('codice_estudos').insert([{ user_id: S.id, tag, content: txt }]);
             addXP(15, 5);
             document.getElementById('log-content').value = '';
-            loadData();
+            await loadData();
         }
-
         function renderLogs() {
-            const list = document.getElementById('codice-list');
-            list.innerHTML = S.logs.map(l => `
+            document.getElementById('codice-list').innerHTML = S.logs.map(l => `
                 <div class="log-entry">
                     <span class="tag">${l.tag}</span><small>${new Date(l.created_at).toLocaleDateString()}</small>
                     <p style="margin-top:5px">${l.content}</p>
@@ -469,102 +455,52 @@
             `).join('');
         }
 
-        // --- PENALTIES ---
-        function applyPenalty(xp, p, reason) {
-            S.xp = Math.max(0, S.xp - xp);
-            S.points = Math.max(0, S.points - p);
-            alert(`Punição: -${xp} XP por ${reason}`);
-            sync();
-        }
-
-        function protocoloZero() {
-            if(confirm("Protocolo Zero zerará seu progresso de hoje. Tem certeza?")) {
-                S.xp -= 500; S.points -= 300;
-                if(S.xp < 0) S.xp = 0; sync();
-            }
-        }
-
-        // --- ACHIEVEMENTS ---
-        function renderAchievements() {
-            const grid = document.getElementById('achievement-grid');
-            if (!grid) return;
-            grid.innerHTML = '';
-            for(let i=1; i<=60; i++) {
-                const unlocked = S.unlocked_achs.includes(i);
-                grid.innerHTML += `<div class="badge-slot ${unlocked ? 'unlocked' : ''}">🏆</div>`;
-            }
-        }
-
-        // --- SYSTEM ---
-        function addXP(xp, p) { 
-            S.xp += xp; 
-            S.points += p; 
-            sync(); 
-        }
-
-        function addWater(ml) { 
-            S.water += ml; 
-            if(S.water < 0) S.water = 0; 
-            sync(); 
-        }
-
-        async function registrarTreino() {
-            const select = document.getElementById('train-select');
-            const val = select.value;
-            
-            if(val === 'none') return alert("Selecione o treino realizado.");
-
-            let xp = 0;
-            let p = 0;
-
-            if(val === 'inf') { xp = 100; p = 50; }
-            else if(val === 'pc') { xp = 60; p = 30; }
-            else if(val === 'omb') { xp = 40; p = 20; }
-
-            try {
-                await _supabase.from('training_log').insert([{ 
-                    user_id: S.id, 
-                    type: val, 
-                    xp_gained: xp, 
-                    points_gained: p 
-                }]);
-
-                addXP(xp, p); 
-                alert(`Treino de ${val.toUpperCase()} registrado! +${xp} XP`);
-                select.value = 'none';
-            } catch (err) {
-                console.error(err);
-                alert("Erro ao salvar no banco.");
-            }
-        }
-
+        // --- GRÁFICOS E ROTINA ---
         function renderChart() {
             const canvas = document.getElementById('chart-focus');
-            if (!canvas) return;
+            if(!canvas) return;
             const ctx = canvas.getContext('2d');
-            const data = {
-                labels: ['JP', 'EN', 'PG', 'IA', 'VD'],
-                datasets: [{
-                    data: [
-                        S.logs.filter(l => l.tag === 'JP').length,
-                        S.logs.filter(l => l.tag === 'EN').length,
-                        S.logs.filter(l => l.tag === 'PG').length,
-                        S.logs.filter(l => l.tag === 'IA').length,
-                        S.logs.filter(l => l.tag === 'VD').length,
-                    ],
-                    backgroundColor: ['#dc2626', '#2563eb', '#fbbf24', '#a855f7', '#1dd1a1']
-                }]
-            };
+            const counts = ['JP','EN','PG','IA','VD'].map(t => S.logs.filter(l => l.tag === t).length);
             if(window.focusChart) window.focusChart.destroy();
-            window.focusChart = new Chart(ctx, { type: 'doughnut', data, options: { plugins: { legend: { display: false } } } });
+            window.focusChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['JP','EN','PG','IA','VD'],
+                    datasets: [{ data: counts, backgroundColor: ['#dc2626','#2563eb','#fbbf24','#a855f7','#1dd1a1'] }]
+                },
+                options: { plugins: { legend: { display: false } } }
+            });
+        }
+
+        function renderRoutine() {
+            const days = ["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
+            const today = new Date().getDay();
+            const container = document.getElementById('routine-container');
+            container.innerHTML = days.map((day, idx) => `
+                <div class="day-box ${idx < today ? 'locked' : ''}">
+                    <div class="day-header" onclick="toggleAcc(this)">
+                        <span>${day} ${idx === today ? '— (ATUAL)' : ''}</span>
+                        <span>${idx < today ? '🔒' : '▼'}</span>
+                    </div>
+                    <div class="day-content ${idx === today ? 'active' : ''}">
+                        <div class="habit-item"><input type="checkbox" onchange="addXP(5,5)"> Café da Manhã</div>
+                        <div class="habit-item"><input type="checkbox" onchange="addXP(20,10)"> Estudo Diário</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        function toggleAcc(el) { el.nextElementSibling.classList.toggle('active'); }
+        function renderAchievements() {
+            const grid = document.getElementById('achievement-grid');
+            if(!grid) return;
+            grid.innerHTML = Array.from({length:60}, (_,i) => 
+                `<div class="badge-slot ${S.unlocked_achs.includes(i+1) ? 'unlocked' : ''}">🏆</div>`
+            ).join('');
         }
 
         window.onload = () => {
             const date = new Date();
-            const dashDate = document.getElementById('dash-date');
-            if (dashDate) {
-                dashDate.innerText = date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
-            }
+            document.getElementById('dash-date').innerText = date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
         };
     </script>
 </body>
