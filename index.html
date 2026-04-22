@@ -356,20 +356,31 @@ let currentUser = null;
     // --- FUNÇÕES DO SUPABASE ---
 
     async function fazerLogin() {
-        const email = document.getElementById('auth-email').value;
-        const password = document.getElementById('auth-password').value;
+    const email = document.getElementById('auth-email').value;
+    const password = document.getElementById('auth-password').value;
+    
+    try {
+        // Usando a variável correta que configuramos antes
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
         
-        try {
-            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-            
-            if (error) throw error;
+        if (error) {
+            // Mensagem de erro personalizada
+            alert("Falha na sincronização: Usuário ou senha incorretos.");
+            return;
+        }
 
-            currentUser = data.user;
-            document.getElementById('login-overlay').style.display = 'none';
-            await loadFromSupabase();
+        currentUser = data.user;
+        
+        // Mensagem de sucesso
+        alert("Sincronização realizada com sucesso! Bem-vindo ao Sistema Kael.");
+        
+        document.getElementById('login-overlay').style.display = 'none';
+        await loadFromSupabase();
 
-        } catch (error) {
-            alert("Erro no acesso: " + error.message);
+    } catch (error) {
+        alert("Erro inesperado: " + error.message);
+    }
+}
         }
     }
 
@@ -378,7 +389,7 @@ let currentUser = null;
 
         try {
             const { data: profile, error: profileError } = await supabase
-                .from('profiles')
+                .from('perfis')
                 .select('*')
                 .eq('id', currentUser.id)
                 .single();
@@ -398,7 +409,7 @@ let currentUser = null;
 
             // Carregar Conquistas
             const { data: achs, error: achError } = await supabase
-                .from('achievements')
+                .from('conquistas')
                 .select('achievement_id')
                 .eq('user_id', currentUser.id);
             
@@ -434,7 +445,7 @@ let currentUser = null;
         if (!currentUser) return;
         try {
             const { error } = await supabase
-                .from('profiles')
+                .from('perfis')
                 .update({
                     xp: state.xp,
                     points: state.points,
@@ -801,7 +812,7 @@ let currentUser = null;
             const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${data.fullPath}`;
             
             // Atualiza a URL do avatar no perfil do usuário
-            await supabaseClient.from('profiles').update({ avatar_url: publicUrl }).eq('id', currentUser.id);
+            await supabaseClient.from('perfis').update({ avatar_url: publicUrl }).eq('id', currentUser.id);
             state.avatar = publicUrl; // Atualiza o estado local
             document.getElementById('avatar-img').src = publicUrl; // Atualiza a imagem imediatamente
 
@@ -842,7 +853,7 @@ let currentUser = null;
         }
         
         // Salva a conquista no Supabase
-        supabaseClient.from('achievements').insert([{ user_id: currentUser.id, achievement_id: id }])
+        supabaseClient.from('conquistas').insert([{ user_id: currentUser.id, achievement_id: id }])
             .then(({ error }) => {
                 if (error) console.error("Erro ao salvar conquista:", error.message);
             });
