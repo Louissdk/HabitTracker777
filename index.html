@@ -21,6 +21,8 @@
             --purple: #a855f7; --orange: #ff6b35; --teal: #1dd1a1; --gold: #f1c40f;
             --font: 'Space Grotesk', sans-serif; --mono: 'JetBrains Mono', monospace;
             --r: 12px; --r2: 8px;
+            .log-entry p { color: var(--text); }
+.log-entry small { color: var(--text3); font-family: var(--mono); margin-left: 10px; }
         }
 
         .light-mode {
@@ -324,31 +326,43 @@
         }
 
         async function loadData() {
-            const { data: profile } = await _supabase.from('profiles').select('*').eq('id', S.id).single();
-            if(profile) {
-                S.xp = profile.xp; S.points = profile.points;
-                S.focus_hours = profile.focus_hours_total;
-                S.water = profile.water_ml_today;
-            }
-            const { data: logs } = await _supabase.from('codice_estudos').select('*').eq('user_id', S.id).order('created_at', {ascending: false});
-            S.logs = logs || [];
-            const { data: achs } = await _supabase.from('achievements').select('achievement_id').eq('user_id', S.id);
-            S.unlocked_achs = achs ? achs.map(a => a.achievement_id) : [];
+    const { data: profile } = await _supabase.from('profiles').select('*').eq('id', S.id).single();
+    if(profile) {
+        S.xp = profile.xp || 0; 
+        S.points = profile.points || 0;
+        S.focus_hours = profile.focus_hours_total || 0;
+        S.water = profile.water_ml_today || 0;
+    }
+    
+    const { data: logs } = await _supabase.from('codice_estudos').select('*').eq('user_id', S.id).order('created_at', {ascending: false});
+    S.logs = logs || [];
+    
+    const { data: achs } = await _supabase.from('achievements').select('achievement_id').eq('user_id', S.id);
+    S.unlocked_achs = achs ? achs.map(a => a.achievement_id) : [];
 
-            updateUI();
-            renderRoutine();
-            renderChart();
+    // Gatilhos de interface
+    updateUI();
+    renderRoutine();
+    renderChart();
+    renderLogs(); // Adicionado
+    updateBotany(); // Adicionado
+}
         }
 
         async function sync() {
-            if(!S.id) return;
-            await _supabase.from('profiles').update({
-                xp: S.xp, points: S.points, 
-                focus_hours_total: S.focus_hours,
-                water_ml_today: S.water
-            }).eq('id', S.id);
-            updateUI();
-        }
+    if(!S.id) return;
+    try {
+        await _supabase.from('profiles').update({
+            xp: S.xp, 
+            points: S.points, 
+            focus_hours_total: S.focus_hours,
+            water_ml_today: S.water
+        }).eq('id', S.id);
+        updateUI();
+    } catch (e) {
+        console.error("Erro na sincronização:", e);
+    }
+}
 
         // --- NAVIGATION ---
         function showPage(id) {
@@ -484,6 +498,46 @@
         function addXP(xp, p) { S.xp += xp; S.points += p; sync(); }
         function addWater(ml) { S.water += ml; if(S.water < 0) S.water = 0; sync(); }
 
+        // --- SYSTEM ---
+        function addXP(xp, p) { S.xp += xp; S.points += p; sync(); }
+        function addWater(ml) { S.water += ml; if(S.water < 0) S.water = 0; sync(); }
+
+        // ADICIONE ESTA FUNÇÃO AQUI:
+        async function registrarTreino() {
+            const select = document.getElementById('train-select');
+            const val = select.value;
+            
+            if(val === 'none') return alert("Selecione o treino realizado.");
+
+            let xp = 0;
+            let p = 0;
+
+            if(val === 'inf') { xp = 100; p = 50; }
+            else if(val === 'pc') { xp = 60; p = 30; }
+            else if(val === 'omb') { xp = 40; p = 20; }
+
+            try {
+                // Salva no Supabase na tabela training_log
+                await _supabase.from('training_log').insert([{ 
+                    user_id: S.id, 
+                    type: val, 
+                    xp_gained: xp, 
+                    points_gained: p 
+                }]);
+
+                addXP(xp, p); 
+                alert(`Treino de ${val.toUpperCase()} registrado! +${xp} XP`);
+                select.value = 'none';
+            } catch (err) {
+                console.error(err);
+                alert("Erro ao salvar no banco. Verifique se a tabela 'training_log' existe.");
+            }
+        }
+
+        function renderChart() {
+            const ctx = document.getElementById('chart-focus').getContext('2d');
+            // ... resto do seu código de gráfico
+            
         function renderChart() {
             const ctx = document.getElementById('chart-focus').getContext('2d');
             const data = {
