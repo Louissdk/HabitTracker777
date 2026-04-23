@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KAEL V. DRAVEK — SISTEMA DE EVOLUÇÃO ABSOLUTO v1.0.3</title>
+    <title>KAEL V. DRAVEK — SISTEMA DE EVOLUÇÃO ABSOLUTO v1.0.2</title>
     
+    <!-- Bibliotecas Externas -->
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
     <style>
         :root {
@@ -50,11 +52,9 @@
         /* SIDEBAR COMPONENTS */
         .profile-section { padding: 0 20px 30px; text-align: center; border-bottom: 1px solid var(--border); }
         .avatar-wrapper { width: 110px; height: 110px; margin: 0 auto 15px; position: relative; }
-        .avatar-img { width: 100%; height: 100%; border-radius: 50%; border: 3px solid var(--accent); object-fit: cover; background: #000; cursor: pointer; position: relative; z-index: 1;}
+        .avatar-img { width: 100%; height: 100%; border-radius: 50%; border: 3px solid var(--accent); object-fit: cover; background: #000; cursor: pointer; }
+        .rank-img-preview { width: 40px; height: 40px; position: absolute; bottom: -5px; right: -5px; background: var(--bg2); border-radius: 50%; border: 2px solid var(--gold); padding: 5px; }
         
-        .rank-overlay { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 50px; height: 50px; z-index: 10; filter: drop-shadow(0 0 5px rgba(0,0,0,0.8)); pointer-events: none; object-fit: contain; }
-        .rank-img-preview { width: 40px; height: 40px; position: absolute; bottom: -5px; right: -5px; background: var(--bg2); border-radius: 50%; border: 2px solid var(--gold); padding: 5px; z-index: 10;}
-
         .nav-item { display: flex; align-items: center; gap: 12px; padding: 14px 20px; cursor: pointer; color: var(--text2); transition: 0.2s; font-size: 14px; font-weight: 500; border-left: 4px solid transparent; }
         .nav-item:hover, .nav-item.active { background: var(--bg3); color: var(--text); border-left-color: var(--accent); }
 
@@ -66,8 +66,8 @@
         /* HABITS */
         .habit-item { display: flex; align-items: center; justify-content: space-between; padding: 15px; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r2); margin-bottom: 10px; cursor: pointer; transition: 0.2s; }
         .habit-item.done { border-color: var(--green); background: #22c55e08; }
-        .habit-item.done .check-circle { background: var(--green); border-color: var(--green); color: #000; }
-        .check-circle { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border2); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 900; color: transparent; }
+        .habit-item.done .check-circle { background: var(--green); color: #000; }
+        .check-circle { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border2); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 900; }
         .reward-tag { font-size: 10px; font-family: var(--mono); color: var(--gold); font-weight: 700; }
 
         /* COURSES */
@@ -94,35 +94,25 @@
         .risk-high { background: var(--red); box-shadow: 0 0 20px var(--red); }
         .risk-text { color: var(--text); font-weight: 700; }
 
-        /* CONQUISTAS E UPLOADS */
-        .ach-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
-        .ach-card { aspect-ratio: 1; background: var(--bg3); border: 1px solid var(--border); border-radius: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: 0.4s; opacity: 0.3; filter: grayscale(1); position: relative; padding: 10px; text-align: center; }
-        .ach-card.unlocked { opacity: 1; filter: grayscale(0); border-color: var(--gold); box-shadow: 0 0 20px rgba(245, 158, 11, 0.2); }
-        .ach-img { width: 50px; height: 50px; object-fit: contain; margin-bottom: 10px; font-size: 40px; }
-        
-        .upload-icon-btn { position: absolute; top: 10px; right: 10px; background: var(--bg4); width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; opacity: 0.5; z-index: 5;}
-        .upload-icon-btn:hover { opacity: 1; background: var(--accent); }
-
-        /* NOTIFICAÇÃO */
-        #ach-notif { position: fixed; top: 20px; right: 20px; background: #1a1a1a; border: 2px solid var(--gold); padding: 20px; border-radius: 12px; z-index: 50000; display: none; box-shadow: 0 10px 40px rgba(0,0,0,0.8); animation: slideIn 0.5s ease forwards; }
-        @keyframes slideIn { from { transform: translateX(120%); } to { transform: translateX(0); } }
+        /* TOOLTIP */
+        [data-tooltip] { position: relative; }
+        [data-tooltip]:hover::after { content: attr(data-tooltip); position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%); background: #000; color: #fff; padding: 8px 12px; border-radius: 6px; font-size: 10px; white-space: nowrap; z-index: 1000; border: 1px solid var(--border2); }
 
         /* UTILS */
         .input { width: 100%; padding: 14px; background: var(--bg3); border: 1px solid var(--border); border-radius: var(--r2); color: white; font-family: var(--mono); margin-bottom: 15px; }
         .btn { padding: 12px 24px; border-radius: var(--r2); border: none; cursor: pointer; font-weight: 700; font-family: inherit; transition: 0.3s; text-transform: uppercase; }
         .btn-primary { background: var(--accent); color: white; }
         .btn-ghost { background: transparent; color: var(--text2); border: 1px solid var(--border); }
-        .locked-day { filter: grayscale(1); opacity: 0.4; cursor: not-allowed !important; pointer-events: none; }
+        .locked-day { filter: grayscale(1); opacity: 0.4; cursor: not-allowed !important; }
         .sigla { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 800; font-family: var(--mono); }
     </style>
 </head>
 <body>
 
-    <input type="file" id="generic-upload" hidden accept="image/*">
-
+    <!-- LOGIN SCREEN -->
     <div id="auth-screen">
         <div class="auth-card">
-            <h1 style="color: var(--accent); font-family: var(--mono); margin-bottom: 30px;">KAEL V. DRAVEK <small style="display:block; font-size: 10px; color: var(--text3); letter-spacing: 3px;">VERSÃO ABSOLUTA 1.0.3</small></h1>
+            <h1 style="color: var(--accent); font-family: var(--mono); margin-bottom: 30px;">KAEL V. DRAVEK <small style="display:block; font-size: 10px; color: var(--text3); letter-spacing: 3px;">VERSÃO 1.0.2</small></h1>
             <input type="email" id="auth-email" class="input" placeholder="EMAIL DE SINCRONIA">
             <input type="password" id="auth-pass" class="input" placeholder="CHAVE DE ACESSO">
             <button class="btn btn-primary" style="width: 100%;" onclick="app.auth.login()">CONECTAR AO ABSOLUTO</button>
@@ -130,26 +120,24 @@
         </div>
     </div>
 
-    <div id="ach-notif">
-        <div style="display: flex; gap: 20px; align-items: center;">
-            <div id="notif-img-cont"><span id="ach-notif-icon" style="font-size: 40px;">🏆</span></div>
+    <!-- NOTIFICAÇÃO DE CONQUISTA -->
+    <div id="ach-notif" style="position: fixed; top: 20px; right: 20px; background: var(--bg2); border: 2px solid var(--gold); padding: 20px; border-radius: 10px; z-index: 20000; display: none; animation: slideIn 0.5s forwards;">
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <div id="ach-notif-icon" style="font-size: 40px;">🏆</div>
             <div>
-                <b style="color: var(--gold); display: block; font-size: 16px;">NOVA CONQUISTA DESBLOQUEADA</b>
-                <span id="ach-notif-name" style="font-weight: 700; font-size: 14px;">Nome da Conquista</span>
+                <b style="color: var(--gold); display: block; font-size: 14px;">NOVA CONQUISTA DESBLOQUEADA</b>
+                <span id="ach-notif-name" style="font-weight: 700;">Nome da Conquista</span>
             </div>
         </div>
     </div>
 
     <div class="app" id="app-interface">
+        <!-- SIDEBAR -->
         <aside class="sidebar">
             <div class="profile-section">
-                <div class="avatar-wrapper">
-                    <img src="" id="current-rank-img" class="rank-overlay" style="display: none;">
-                    
-                    <img src="https://i.ibb.co/6NK6D2X/kael-masha.jpg" class="avatar-img" id="user-avatar" onclick="document.getElementById('avatar-input').click()">
-                    
+                <div class="avatar-wrapper" onclick="document.getElementById('avatar-input').click()">
+                    <img src="https://i.ibb.co/6NK6D2X/kael-masha.jpg" class="avatar-img" id="user-avatar">
                     <img src="" id="rank-img-sidebar" class="rank-img-preview" style="display: none;">
-                    
                     <input type="file" id="avatar-input" hidden accept="image/*" onchange="app.profile.uploadAvatar(event)">
                 </div>
                 <h3 id="sidebar-name">KAEL V. DRAVEK</h3>
@@ -176,6 +164,7 @@
                 <div class="nav-item active" onclick="app.ui.showPage('dash', this)"><span>📊</span> Dashboard</div>
                 <div class="nav-item" onclick="app.ui.showPage('ritual', this)"><span>📅</span> Sincronia Semanal</div>
                 <div class="nav-item" onclick="app.ui.showPage('habits', this)"><span>🎯</span> Forja de Hábitos</div>
+                <div class="nav-item" onclick="app.ui.showPage('gym', this)"><span>🏋️</span> Forja Física</div>
                 <div class="nav-item" onclick="app.ui.showPage('pomo', this)"><span>🍅</span> Câmara de Foco</div>
                 <div class="nav-item" onclick="app.ui.showPage('bradesco', this)"><span>🎓</span> Academia Bradesco</div>
                 <div class="nav-item" onclick="app.ui.showPage('codice', this)"><span>📜</span> Códice do Absoluto</div>
@@ -189,30 +178,32 @@
             </div>
         </aside>
 
+        <!-- CONTEÚDO PRINCIPAL -->
         <main class="main">
             
+            <!-- DASHBOARD -->
             <div id="page-dash" class="page active">
                 <div style="margin-bottom: 40px;">
-                    <h1 id="dash-greeting" style="font-size: 32px;">Sincronizando...</h1>
+                    <h1 id="dash-greeting" style="font-size: 32px;">Bom dia, Kael ⚡</h1>
                     <p id="dash-date" style="color: var(--text2); font-weight: 500; margin-top: 5px;"></p>
                 </div>
 
                 <div class="grid4">
                     <div class="card">
-                        <span class="metric-title" style="font-size: 11px; color: var(--text3);">XP ACUMULADO</span>
-                        <h2 style="color: var(--xp);" id="dash-val-xp">0</h2>
+                        <span class="metric-title">XP ACUMULADO</span>
+                        <span class="metric-value" style="color: var(--xp);" id="dash-val-xp">0</span>
                     </div>
                     <div class="card">
-                        <span class="metric-title" style="font-size: 11px; color: var(--text3);">PONTOS GERAIS</span>
-                        <h2 style="color: var(--gold);" id="dash-val-pts">0</h2>
+                        <span class="metric-title">PONTOS GERAIS</span>
+                        <span class="metric-value" style="color: var(--gold);" id="dash-val-pts">0</span>
                     </div>
                     <div class="card">
-                        <span class="metric-title" style="font-size: 11px; color: var(--text3);">SEQUÊNCIA ATUAL</span>
-                        <h2 style="color: var(--red);" id="dash-val-streak">0 🔥</h2>
+                        <span class="metric-title">SEQUÊNCIA ATUAL</span>
+                        <span class="metric-value" style="color: var(--red);" id="dash-val-streak">0 🔥</span>
                     </div>
                     <div class="card">
-                        <span class="metric-title" style="font-size: 11px; color: var(--text3);">STATUS MENTAL</span>
-                        <h2 style="color: var(--green);" id="dash-val-risk">ESTÁVEL</h2>
+                        <span class="metric-title">STATUS MENTAL</span>
+                        <span class="metric-value" style="color: var(--green);" id="dash-val-risk">ESTÁVEL</span>
                     </div>
                 </div>
 
@@ -245,6 +236,7 @@
                 </div>
             </div>
 
+            <!-- SINCRONIA SEMANAL -->
             <div id="page-ritual" class="page">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
                     <h2>SINCRONIA SEMANAL</h2>
@@ -253,11 +245,13 @@
                 <div id="ritual-board" style="display: grid; gap: 15px;"></div>
             </div>
 
+            <!-- FORJA DE HÁBITOS -->
             <div id="page-habits" class="page">
                 <h2>FORJA DE HÁBITOS</h2>
                 <div id="habits-container" style="margin-top: 30px;"></div>
             </div>
 
+            <!-- CÂMARA DE FOCO -->
             <div id="page-pomo" class="page">
                 <div class="card" style="max-width: 600px; margin: 0 auto; text-align: center;">
                     <div id="pomo-evo" style="font-size: 80px; margin-bottom: 20px;">🍅</div>
@@ -294,6 +288,7 @@
                 </div>
             </div>
 
+            <!-- ACADEMIA BRADESCO -->
             <div id="page-bradesco" class="page">
                 <div class="card" style="border-color: var(--green);">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -306,7 +301,6 @@
                             <h2 id="course-xp-val" style="color: var(--gold);">0 XP</h2>
                         </div>
                     </div>
-                    
                     <div style="height: 8px; background: var(--bg4); border-radius: 4px; margin-top: 20px; overflow: hidden;">
                         <div id="course-bar" class="bar-psy" style="width: 0%; height: 100%; background: var(--green);"></div>
                     </div>
@@ -325,6 +319,7 @@
                 </div>
             </div>
 
+            <!-- CÓDICE -->
             <div id="page-codice" class="page">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
                     <h2>CÓDICE DO ABSOLUTO</h2>
@@ -342,10 +337,11 @@
                 </div>
             </div>
 
+            <!-- PATENTES -->
             <div id="page-patentes" class="page">
                 <div class="grid4" style="margin-bottom: 30px;">
                     <div class="card" style="grid-column: span 3;">
-                        <span class="metric-title" style="font-size: 11px; color: var(--text3);">XP TOTAL</span>
+                        <span class="metric-title">XP TOTAL</span>
                         <h2 id="patent-xp" style="font-size: 40px; color: var(--xp);">0</h2>
                         <div style="margin-top: 20px;">
                             <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 10px;">
@@ -358,23 +354,25 @@
                         </div>
                     </div>
                     <div class="card" style="text-align: center;">
-                        <span class="metric-title" style="font-size: 11px; color: var(--text3);">PONTOS</span>
+                        <span class="metric-title">PONTOS</span>
                         <h2 id="patent-pts" style="font-size: 40px; color: var(--gold);">0</h2>
                     </div>
                 </div>
                 <div id="patent-timeline" style="display: grid; gap: 15px;"></div>
             </div>
 
+            <!-- CONQUISTAS -->
             <div id="page-ach" class="page">
                 <div class="card">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
                         <h2>GALERIA DE HONRA</h2>
-                        <span id="ach-count" class="reward-tag" style="font-size: 14px;">0 / 12 CONQUISTADAS</span>
+                        <span id="ach-count" class="reward-tag" style="font-size: 14px;">0 / 57 CONQUISTADAS</span>
                     </div>
-                    <div id="ach-grid" class="ach-grid"></div>
+                    <div id="ach-grid" class="grid3"></div>
                 </div>
             </div>
 
+            <!-- ZONA DE RISCO -->
             <div id="page-risk" class="page">
                 <div class="card" style="border-color: var(--red); background: linear-gradient(180deg, #ef444405, transparent);">
                     <h2 style="color: var(--red); letter-spacing: 2px;">SISTEMA DE DEGRADAÇÃO</h2>
@@ -549,8 +547,6 @@
             leg_days: 0,
             last_date: new Date().toDateString(),
             theme: localStorage.getItem('kael_theme') || 'dark',
-            rank_images: {}, 
-            ach_images: {},
             chartData: {
                 JP: [0,0,0,0,0,0,0], EN: [0,0,0,0,0,0,0], MT: [0,0,0,0,0,0,0],
                 PG: [0,0,0,0,0,0,0], IA: [0,0,0,0,0,0,0], MK: [0,0,0,0,0,0,0],
@@ -591,7 +587,6 @@
                         S.chartData[subject][dayIndex] += xp;
                     }
                     
-                    this.checkAchievements();
                     app.ui.updateSidebar();
                     app.ui.updateDashboard();
                     app.ui.renderCharts();
@@ -622,18 +617,6 @@
                         this.addReward(-20, -10, 'VD');
                     }
                     app.ui.renderCourses();
-                },
-
-                checkAchievements() {
-                    ACHIEVEMENTS_POOL.forEach(a => {
-                        if(!S.achs.includes(a.id)) {
-                            // Lógica baseada em XP (Exemplo simples da versão 1)
-                            if(S.xp >= a.id * 500) { 
-                                S.achs.push(a.id);
-                                app.ui.notify(a);
-                            }
-                        }
-                    });
                 }
             },
 
@@ -647,7 +630,6 @@
                     if(id === 'patentes') this.renderPatents();
                     if(id === 'ach') this.renderAchievements();
                     if(id === 'ritual') this.renderRitual();
-                    if(id === 'bradesco') this.renderCourses();
                 },
 
                 updateSidebar() {
@@ -660,20 +642,6 @@
                     
                     document.getElementById('pts-numbers').innerText = `${S.points} / ${next ? next.p : 'MAX'}`;
                     document.getElementById('pts-bar').style.width = next ? Math.min(100, (S.points / next.p) * 100) + '%' : '100%';
-
-                    // Atualizar imagem da patente sobre a foto (Funcionalidade da V1 e V2 combinada)
-                    const overlay = document.getElementById('current-rank-img');
-                    const preview = document.getElementById('rank-img-sidebar');
-                    
-                    if(S.rank_images[rank.id]) {
-                        overlay.src = S.rank_images[rank.id];
-                        preview.src = S.rank_images[rank.id];
-                        overlay.style.display = 'block';
-                        preview.style.display = 'block';
-                    } else {
-                        overlay.style.display = 'none';
-                        preview.style.display = 'none';
-                    }
                 },
 
                 updateDashboard() {
@@ -699,20 +667,19 @@
                         </div>
                     `).join('');
                     
-                    if(cont) cont.innerHTML = html;
-                    if(dashList) dashList.innerHTML = html;
+                    cont.innerHTML = html;
+                    dashList.innerHTML = html;
 
                     const percent = Math.round((S.habits_done.length / HABITS_POOL.length) * 100);
-                    if(document.getElementById('daily-bar')) document.getElementById('daily-bar').style.width = percent + '%';
-                    if(document.getElementById('daily-percent')) document.getElementById('daily-percent').innerText = percent + '%';
+                    document.getElementById('daily-bar').style.width = percent + '%';
+                    document.getElementById('daily-percent').innerText = percent + '%';
                 },
 
                 renderRitual() {
                     const cont = document.getElementById('ritual-board');
-                    if(!cont) return;
                     const days = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
-                    const today = (new Date().getDay() + 6) % 7;
-                    
+                    const today = (new Date().getDay() + 6) % 7; 
+
                     cont.innerHTML = days.map((d, i) => `
                         <div class="card ${i < today ? 'locked-day' : ''}" style="display:flex; justify-content:space-between; align-items:center;">
                             <div style="display:flex; align-items:center; gap:15px;">
@@ -726,53 +693,22 @@
 
                 renderPatents() {
                     const cont = document.getElementById('patent-timeline');
-                    if(!cont) return;
-                    cont.innerHTML = RANKS_DATA.map(r => {
-                        const hasCustomImg = S.rank_images && S.rank_images[r.id];
-                        const imgRender = hasCustomImg 
-                            ? `<img src="${S.rank_images[r.id]}" style="width:50px; height:50px; border-radius:5px; background:var(--bg3); object-fit:contain;">` 
-                            : `<div style="font-size:30px;">${r.img}</div>`;
-
-                        return `
-                        <div class="card ${S.xp >= r.min && S.points >= r.p ? '' : 'locked-day'}" style="display:flex; align-items:center; gap:20px; position:relative;">
-                            ${imgRender}
+                    cont.innerHTML = RANKS_DATA.map(r => `
+                        <div class="card ${S.xp >= r.min && S.points >= r.p ? '' : 'locked-day'}" style="display:flex; align-items:center; gap:20px;">
+                            <div style="font-size:30px;">${r.img}</div>
                             <div>
                                 <b style="display:block;">${r.n.toUpperCase()}</b>
                                 <small style="color:var(--text3);">REQUISITO: ${r.min} XP | ${r.p} PONTOS</small>
                             </div>
-                            <div class="upload-icon-btn" onclick="app.profile.triggerUpload('rank', ${r.id})">📷</div>
                         </div>
-                        `
-                    }).join('');
+                    `).join('');
                     
                     document.getElementById('patent-xp').innerText = S.xp;
                     document.getElementById('patent-pts').innerText = S.points;
                 },
 
-                renderAchievements() {
-                    const cont = document.getElementById('ach-grid');
-                    if(!cont) return;
-                    cont.innerHTML = ACHIEVEMENTS_POOL.map(a => {
-                        const hasCustomImg = S.ach_images && S.ach_images[a.id];
-                        const imgRender = hasCustomImg 
-                            ? `<img src="${S.ach_images[a.id]}" class="ach-img">` 
-                            : `<div class="ach-img">${a.img}</div>`;
-
-                        return `
-                        <div class="ach-card ${S.achs.includes(a.id) ? 'unlocked' : ''}">
-                            <div class="upload-icon-btn" onclick="app.profile.triggerUpload('ach', ${a.id})">📷</div>
-                            ${imgRender}
-                            <span style="font-size:10px; font-weight:900;">${a.n}</span>
-                            <small style="font-size:8px; color:var(--text3); display:block; margin-top:5px;">${a.desc}</small>
-                        </div>
-                    `}).join('');
-                    
-                    document.getElementById('ach-count').innerText = `${S.achs.length} / ${ACHIEVEMENTS_POOL.length} CONQUISTADAS`;
-                },
-
                 renderCourses(filter = 'all') {
                     const list = document.getElementById('course-list');
-                    if(!list) return;
                     let filtered = BRADESCO_POOL;
 
                     if (filter === 'init') filtered = BRADESCO_POOL.filter(c => c.l === 'init');
@@ -793,7 +729,7 @@
                             </div>
                         </div>
                     `).join('');
-                    
+
                     const done = S.courses_done.length;
                     document.getElementById('course-stats').innerText = `${done} / 83`;
                     document.getElementById('course-xp-val').innerText = `${done * 20} XP`;
@@ -801,11 +737,9 @@
                 },
 
                 renderCharts() {
-                    const canvas = document.getElementById('mainChart');
-                    if(!canvas) return;
-                    const ctx = canvas.getContext('2d');
+                    const ctx = document.getElementById('mainChart').getContext('2d');
                     const colors = { JP: '#ef4444', EN: '#3b82f6', MT: '#10b981', PG: '#f59e0b', IA: '#a855f7', MK: '#f97316', DP: '#14b8a6', FA: '#6366f1', VD: '#22c55e', TS: '#ec4899' };
-                    
+
                     if(window.mainChart) window.mainChart.destroy();
                     
                     window.mainChart = new Chart(ctx, {
@@ -832,15 +766,6 @@
                             }
                         }
                     });
-                },
-
-                notify(ach) {
-                    const n = document.getElementById('ach-notif');
-                    document.getElementById('ach-notif-name').innerText = ach.n;
-                    document.getElementById('ach-notif-icon').innerText = ach.img || "🏆";
-                    n.style.display = 'block';
-                    try { new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3').play(); } catch(e){}
-                    setTimeout(() => n.style.display = 'none', 5000);
                 },
 
                 handleThemeToggle() {
@@ -908,7 +833,6 @@
                 },
                 render() {
                     const board = document.getElementById('codice-board');
-                    if(!board) return;
                     board.innerHTML = S.notes.map(n => `
                         <div class="post-it" data-id="${n.id}">
                             <span class="delete-note" onclick="app.codice.del(${n.id})">✖</span>
@@ -934,15 +858,6 @@
             },
 
             profile: {
-                currentUploadType: null,
-                currentUploadId: null,
-
-                triggerUpload(type, id) {
-                    this.currentUploadType = type;
-                    this.currentUploadId = id;
-                    document.getElementById('generic-upload').click();
-                },
-
                 uploadAvatar(e) {
                     const file = e.target.files[0];
                     if(!file) return;
@@ -951,25 +866,6 @@
                         const base64 = event.target.result;
                         document.getElementById('user-avatar').src = base64;
                         await _supabase.from('profiles').update({ avatar_url: base64 }).eq('id', S.id);
-                    };
-                    reader.readAsDataURL(file);
-                },
-
-                async handleGenericUpload(e) {
-                    const file = e.target.files[0];
-                    if(!file) return;
-                    const reader = new FileReader();
-                    reader.onload = async (event) => {
-                        const base64 = event.target.result;
-                        if(this.currentUploadType === 'rank') {
-                            S.rank_images[this.currentUploadId] = base64;
-                            app.ui.renderPatents();
-                        } else {
-                            S.ach_images[this.currentUploadId] = base64;
-                            app.ui.renderAchievements();
-                        }
-                        app.sync();
-                        app.ui.updateSidebar();
                     };
                     reader.readAsDataURL(file);
                 }
@@ -981,7 +877,7 @@
                     xp: S.xp, points: S.points, streak: S.streak,
                     focus_hours: S.focus_hours, habits_done: S.habits_done,
                     courses_done: S.courses_done, chart_data: S.chartData,
-                    notes: S.notes, rank_images: S.rank_images, ach_images: S.ach_images, achs: S.achs
+                    notes: S.notes
                 }).eq('id', S.id);
             },
 
@@ -990,7 +886,6 @@
                 document.getElementById('app-interface').style.opacity = '1';
                 
                 const { data: profile } = await _supabase.from('profiles').select('*').eq('id', S.id).single();
-                
                 if(profile) {
                     S.xp = profile.xp || 0;
                     S.points = profile.points || 0;
@@ -999,9 +894,6 @@
                     S.courses_done = profile.courses_done || [];
                     S.chartData = profile.chart_data || S.chartData;
                     S.notes = profile.notes || [];
-                    S.rank_images = profile.rank_images || {};
-                    S.ach_images = profile.ach_images || {};
-                    S.achs = profile.achs || [];
                     if(profile.avatar_url) document.getElementById('user-avatar').src = profile.avatar_url;
                 }
 
@@ -1009,9 +901,6 @@
                 document.getElementById('dash-date').innerText = now.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).toUpperCase();
                 document.body.className = S.theme === 'light' ? 'light-mode' : '';
                 
-                // Configura input de upload genérico
-                document.getElementById('generic-upload').onchange = (e) => app.profile.handleGenericUpload(e);
-
                 app.ui.updateSidebar();
                 app.ui.updateDashboard();
                 app.ui.renderHabits();
@@ -1021,13 +910,12 @@
                 app.codice.render();
 
                 const savedArch = localStorage.getItem('kael_archive');
-                if(savedArch && document.getElementById('codice-archive')) {
-                    document.getElementById('codice-archive').value = savedArch;
-                }
+                if(savedArch) document.getElementById('codice-archive').value = savedArch;
             }
         };
 
-        window.onload = () => { console.log("KAEL ABSOLUTO v1.0.3: READY"); };
+        window.onload = () => { console.log("KAEL v1.0.2: READY"); };
     </script>
 </body>
 </html>
+
